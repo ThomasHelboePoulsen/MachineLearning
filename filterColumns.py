@@ -2,7 +2,6 @@ import pandas as pd
 
 wanted_columns = [
  'forretningsproces',
- 'id_lokalId',
  'kommunekode',
  'registreringFra',
  'virkningFra',
