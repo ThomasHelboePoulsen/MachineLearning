@@ -1,0 +1,4 @@
+MachineLearning1!
+
+
+https://api.datafordeler.dk/FileDownloads/GetFile?Register=BBR&LatestTotalForEntity=Bygning&type=current&format=JSON&username=IZWZYNKYAC&password=MachineLearning1!
