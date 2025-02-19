@@ -1,5 +1,7 @@
 import pandas as pd
 from enum import Enum
+import datetime
+from dateutil import parser
 
 class FieldType(Enum):
     CODELIST = 1
@@ -54,20 +56,52 @@ COLUMNS = {
 def main():
     df = pd.read_excel("Data2_ColumunFiltered.xlsx")
     df = one_hot_encode(df)
-    #df = encode_points(df)
-    #df = encode_timestamps(df)
+    df = encode_points(df)
+    df = encode_timestamps(df)
     #df = set_null_to_0_when appropriate(df)
     df.to_excel("Data3_encoded.xlsx")
 
-def encode_points(df):
-    """no workie yet"""
-    point_colums = columns_of_type(COLUMNS,FieldType.POINT)
-    print(point_colums)
-    for col_name in point_colums:
-        column = df[col_name].astype("string")
-        column = column.str.split("POINT(").str.split(")").str.split(",")
-        print(column)
+def encode_timestamps(df):
+    columns = columns_of_type(COLUMNS,FieldType.TIMESTAMP)
+    print("encode timestamps: ",columns)
+    for col_name in columns:
+        df[f"{col_name}_unix"] = encode_timestamp(df[col_name])
+    df.drop(columns=columns,inplace=True)
     return df
+
+def encode_timestamp(column:pd.Series):
+    """Return values converted to unix (seconds since 1970 basically)"""
+    converted_column = []
+    for idx,timestamp_str in column.items():
+        timestamp = parser.isoparse(timestamp_str).timestamp()
+        converted_column.append(timestamp)
+    return converted_column
+
+
+def encode_points(df):
+    """change point columns to 2 columns of easting and northing floats"""
+    point_colums = columns_of_type(COLUMNS,FieldType.POINT)
+    for col_name in point_colums:
+        easting,northing = encode_point(df[col_name])
+        df[f"{col_name}_easting"] = easting
+        df[f"{col_name}_northing"] = northing
+    df.drop(columns=point_colums,inplace=True)
+    return df
+
+def encode_point(point_column):
+    easting, northing = [],[]
+    """return the point encoded as 2 numbers (easting, northing) UTM 32 Euref89
+     and discarding the height as it is always 0"""
+    for idx,point in point_column.items():
+        point = point.split("(")[1]
+        point = point.split(")")[0]
+        point = point.split(" ")
+        easting.append(float(point[0]))
+        northing.append(float(point[1]))
+    return easting,northing
+
+
+
 
 
 def one_hot_encode(df):
