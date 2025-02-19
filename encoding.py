@@ -58,18 +58,30 @@ def main():
     df = one_hot_encode(df)
     df = encode_points(df)
     df = encode_timestamps(df)
-    #df = set_null_to_0_when appropriate(df)
-    df.to_excel("Data3_encoded.xlsx")
+    df = set_null_to_0_when_appropriate(df)
+    df.to_excel("Data3_encoded.xlsx",index=False)
+
+def set_null_to_0_when_appropriate(df):
+    """map empty values to 0 when a missing value has it as a natural interpretation
+    This works for AREA fields and sikringsrumspladser
+    """
+    columns = columns_of_type(COLUMNS,FieldType.AREA)
+    columns.append('byg069Sikringsrumpladser')
+    print("set_null_to_0: ",columns)
+    for col_name in columns:
+        df[col_name] = df[col_name].fillna(0)
+    return df
+
 
 def encode_timestamps(df):
     columns = columns_of_type(COLUMNS,FieldType.TIMESTAMP)
     print("encode timestamps: ",columns)
     for col_name in columns:
-        df[f"{col_name}_unix"] = encode_timestamp(df[col_name])
+        df[f"{col_name}_unix"] = map_empty_to_0(df[col_name])
     df.drop(columns=columns,inplace=True)
     return df
 
-def encode_timestamp(column:pd.Series):
+def map_empty_to_0(column:pd.Series):
     """Return values converted to unix (seconds since 1970 basically)"""
     converted_column = []
     for idx,timestamp_str in column.items():
@@ -81,6 +93,7 @@ def encode_timestamp(column:pd.Series):
 def encode_points(df):
     """change point columns to 2 columns of easting and northing floats"""
     point_colums = columns_of_type(COLUMNS,FieldType.POINT)
+    print("encode_points: ",point_colums)
     for col_name in point_colums:
         easting,northing = encode_point(df[col_name])
         df[f"{col_name}_easting"] = easting
