@@ -23,6 +23,12 @@ def reorder_dataframe(DF, index1, index2):
     
     return DF.iloc[:, nums].to_numpy()
 
+# Sets specific column to 0. column. Also changes to numpy array.
+def set_0_column(DF, Column):
+    index1 = list(DF.columns).index(Column)
+    
+    return reorder_dataframe(DF, index1, 0)
+    
 
 def main():
     # Load data in numpy format, easier for doing the analysis
@@ -79,5 +85,5 @@ if __name__ == "__main__":
     X_Train_PCA = main()
 
 # =============================================================================
-# 
+# make boxplot of each attribute
 # =============================================================================
