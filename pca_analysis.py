@@ -18,7 +18,7 @@ def main():
     X = Data[:, 1:]
     y = Data[:, 0]
     
-    n = [x for x in range(int(min(y)),int(max(y))+1 )]
+    n = [x for x in range(int(min(y)),int(max(y))+1)]
     N,M = X.shape
     C = len(n)
     
@@ -40,6 +40,7 @@ def main():
     
     # Data centering (subtracting mean and dividing by std)
     Y = (X - np.ones((N,1)) * X.mean(0)) / X.std(0)
+    print("Standard Deviation of Y: " + str(Y.std(0)))
     
     # PCA by computing SVD of Y
     U, S, Vh = svd(Y, full_matrices=False)
