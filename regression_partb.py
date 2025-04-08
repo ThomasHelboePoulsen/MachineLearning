@@ -9,7 +9,7 @@ warnings.filterwarnings("ignore", category=ConvergenceWarning)
 
 
 # Load excel file
-file_path = 'Data5_constant_columns_removed.vsc'
+file_path = 'Data5_constant_columns_removed.csv'
 df = pd.read_csv(file_path)
 
 # Column names
@@ -26,9 +26,8 @@ print(f'Baseline: {baseline:.2f}')
 X = df.drop(columns=[target])
 y = df[target]
 
+from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
-scaler = StandardScaler()
-X = scaler.fit_transform(X)  # Overwrites X with scaled values
 
 # Data is already one-hot encoded and standardised, right?
 # Convert to numpy for sklearn compatibility
@@ -97,20 +96,24 @@ for outer_train_idx, outer_test_idx in kf_outer.split(X):
             y_train, y_val = y_par[inner_train_idx], y_par[val_idx]
 
             # Train model M_s (ANN with h hidden units) on D^train
-            model = MLPRegressor(
-                hidden_layer_sizes=(h,), 
-                activation='identity',
-                max_iter=1000,
-                random_state=49
+            model = make_pipeline(
+                StandardScaler(),  # Scaled using only X_train in each fold
+                MLPRegressor(
+                    hidden_layer_sizes=(h,),
+                    activation='identity',
+                    solver='adam',
+                    max_iter=1000,
+                    random_state=49
                 )
-            
+            )
+
             model.fit(X_train, y_train)
 
             # Evaluate on D^val to get E^val_(M_s,j)
             y_val_pred = model.predict(X_val)
             val_mse = mean_squared_error(y_val, y_val_pred)
             inner_val_errors.append(val_mse)
-        
+
         # Compute average validation error across inner folds for model M_s
         avg_val_errors.append(np.mean(inner_val_errors))
 
@@ -119,12 +122,16 @@ for outer_train_idx, outer_test_idx in kf_outer.split(X):
     best_h = hidden_units_range[best_model_index]
 
     # Retrain best model M* on all of D^par
-    best_model = MLPRegressor(
-        hidden_layer_sizes=(best_h,), 
-        activation='identity',
-        max_iter=1000, 
-        random_state=81
+    best_model = make_pipeline(
+        StandardScaler(),
+        MLPRegressor(
+            hidden_layer_sizes=(best_h,),
+            activation='identity',
+            solver='adam',
+            max_iter=1000,
+            random_state=81
         )
+    )
     best_model.fit(X_par, y_par)
 
     # Evaluate E^test_i on D^test
