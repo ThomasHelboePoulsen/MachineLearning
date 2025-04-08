@@ -3,6 +3,9 @@ import numpy as np
 from sklearn.model_selection import KFold
 from sklearn.dummy import DummyRegressor
 from sklearn.metrics import mean_squared_error
+import warnings
+from sklearn.exceptions import ConvergenceWarning
+warnings.filterwarnings("ignore", category=ConvergenceWarning)
 
 
 # Load excel file
@@ -23,14 +26,18 @@ print(f'Baseline: {baseline:.2f}')
 X = df.drop(columns=[target])
 y = df[target]
 
+from sklearn.preprocessing import StandardScaler
+scaler = StandardScaler()
+X = scaler.fit_transform(X)  # Overwrites X with scaled values
+
 # Data is already one-hot encoded and standardised, right?
 # Convert to numpy for sklearn compatibility
-X = X.values
-y = y.values
+X = np.array(X)
+y = np.array(y)
 
 # Outer CV loop
 K1 = 10
-kf_outer = KFold(n_splits=K1, shuffle=True, random_state=42)
+kf_outer = KFold(n_splits=K1, shuffle=True, random_state=37)
 
 test_errors = []
 
@@ -43,7 +50,7 @@ for train_idx, test_idx in kf_outer.split(X):
     baseline_model = DummyRegressor(strategy='mean')
     baseline_model.fit(X_train, y_train)
 
-    # Evaluate on D_test (test_test)
+    # Evaluate on D_test
     y_pred = baseline_model.predict(X_test)
     mse = mean_squared_error(y_test, y_pred)
     test_errors.append(mse)
@@ -52,7 +59,7 @@ for train_idx, test_idx in kf_outer.split(X):
 E_gen = np.mean(test_errors)
 print(f'Estimated generalisation error (baseline): {E_gen:.2f}')
 
-'''
+
 # ANN model
 from sklearn.neural_network import MLPRegressor
 
@@ -64,7 +71,7 @@ K2 = 10 # Inner CV
 hidden_units_range = [1, 2, 4, 8, 16]
 
 # Outer loop: to estimate generalisation error
-kf_outer = KFold(n_splits=K1, shuffle=True, random_state=42)
+kf_outer = KFold(n_splits=K1, shuffle=True, random_state=37)
 outer_test_errors = []
 
 # Loop over outer folds
@@ -90,7 +97,14 @@ for outer_train_idx, outer_test_idx in kf_outer.split(X):
             y_train, y_val = y_par[inner_train_idx], y_par[val_idx]
 
             # Train model M_s (ANN with h hidden units) on D^train
-            model = MLPRegressor(hidden_layer_sizes=(h,), max_iter=1000, random_state=42)
+            model = MLPRegressor(
+                hidden_layer_sizes=(h,), 
+                activation='identity',
+                solver='adam',
+                max_iter=1000,
+                random_state=37
+                )
+            
             model.fit(X_train, y_train)
 
             # Evaluate on D^val to get E^val_(M_s,j)
@@ -106,7 +120,13 @@ for outer_train_idx, outer_test_idx in kf_outer.split(X):
     best_h = hidden_units_range[best_model_index]
 
     # Retrain best model M* on all of D^par
-    best_model = MLPRegressor(hidden_layer_sizes=(best_h,), max_iter=1000, random_state=42)
+    best_model = MLPRegressor(
+        hidden_layer_sizes=(best_h,), 
+        activation='identity',
+        solver='adam',
+        max_iter=1000, 
+        random_state=42
+        )
     best_model.fit(X_par, y_par)
 
     # Evaluate E^test_i on D^test
@@ -120,4 +140,3 @@ for outer_train_idx, outer_test_idx in kf_outer.split(X):
 E_gen = np.mean(outer_test_errors)
 print(f"Estimated generalisation error (ANN): {E_gen:.2f}")
 
-'''
