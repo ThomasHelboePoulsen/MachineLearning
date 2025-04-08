@@ -126,8 +126,8 @@ for outer_train_idx, outer_test_idx in kf_outer.split(X):
         lamdas = [100,500,1000,1500]
         for l in lamdas:
             y_linreg = fit_predict_linreg(X_train,y_train, X_val,l)
-            inner_ann_val_errors.append(mean_squared_error(y_val, y_ann))
-        avg_val_linreg_errors.append(inner_ann_val_errors)
+            inner_linreg_val_errors.append(mean_squared_error(y_val, y_ann))
+        avg_val_linreg_errors.append(inner_linreg_val_errors)
 
 
     # Select the best model ANN M*

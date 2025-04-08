@@ -4,7 +4,10 @@ import numpy as np
 
 def main():
     df = pd.read_excel("tTestResults.xlsx")
-    differenceTest(df["ann"],df["linreg"])
+    comparisons = [["ann","linreg"],["ann","baseline"],["baseline","linreg"]]
+    data = [differenceTest(c1,c2), c1 +c2 ]
+    t_stat,p_value,lower_bound,upper_bound = differenceTest(df["ann"],df["linreg"])
+    print("buuber")
 
 # bootstrap assuming no distribution
 def bootstrap10(data):
@@ -14,8 +17,8 @@ def bootstrap10(data):
 
 def differenceTest(vector1,vector2):
     """get difference measures. Must be dependent"""
-    t_stat, p_value = ttest_rel(df["ann"], df["linreg"])
-    z = df["ann"] -  df["linreg"]
+    t_stat, p_value = ttest_rel(vector1, vector2)
+    z = vector1 -  vector2
     t_stat = np.mean(z) / (np.std(z) / (len(z)**(1/2)))
     newZ = bootstrap10(z)
     lower_bound = np.percentile(newZ, 2.5)
