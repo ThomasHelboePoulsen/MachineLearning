@@ -24,10 +24,19 @@ def fit_predict_ann(X_train,y_train, X_test,h):
     # Evaluate on D^val to get E^val_(M_s,j)
     return model.predict(X_test)
 
+def fit_predict_baseline(X_train,y_train, X_test):
+    model = make_pipeline(
+                StandardScaler(),  # Scaled using only X_train in each fold
+                DummyRegressor(strategy='mean')
+            )
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
+    return y_pred
+
 # Load excel file
 file_path = 'Data5_constant_columns_removed.csv'
 df = pd.read_csv(file_path)
-#df = df.head(50)
+df = df.head(50)
 
 # Column names
 # print(df.columns)
@@ -50,32 +59,6 @@ from sklearn.preprocessing import StandardScaler
 # Convert to numpy for sklearn compatibility
 X = np.array(X)
 y = np.array(y)
-
-# Outer CV loop
-K1 = 10
-kf_outer = KFold(n_splits=K1, shuffle=True, random_state=8)
-
-test_errors = []
-
-for train_idx, test_idx in kf_outer.split(X):
-    # Outer split D_par (training), D_test (test)
-    X_train, X_test = X[train_idx], X[test_idx]
-    y_train, y_test = y[train_idx], y[test_idx]
-
-    # Train baseline model on D_par (training set)
-    baseline_model = DummyRegressor(strategy='mean')
-    baseline_model.fit(X_train, y_train)
-
-    # Evaluate on D_test
-    y_pred = baseline_model.predict(X_test)
-    mse = mean_squared_error(y_test, y_pred)
-    test_errors.append(mse)
-
-# Final generalization error
-E_gen = np.mean(test_errors)
-print(f'Estimated generalisation error (baseline): {E_gen:.2f}')
-
-
 # ANN model
 from sklearn.neural_network import MLPRegressor
 
@@ -88,7 +71,8 @@ hidden_units_range = [1, 2, 4, 8, 16]
 
 # Outer loop: to estimate generalisation error
 kf_outer = KFold(n_splits=K1, shuffle=True, random_state=24)
-outer_test_errors = []
+outer_ann_test_errors = []
+outer_baseline_test_errors = []
 
 # Loop over outer folds
 for outer_train_idx, outer_test_idx in kf_outer.split(X):
@@ -97,7 +81,8 @@ for outer_train_idx, outer_test_idx in kf_outer.split(X):
     y_par, y_test = y[outer_train_idx], y[outer_test_idx]
 
     # Initialise list to hold validation errors for each model (hidden unit count)
-    avg_val_errors = []
+    avg_val_ann_errors = []
+    avg_val_baseline_errors = []
 
     # Inner loop: to select the best model/hyperparameter
     kf_inner = KFold(n_splits=K2, shuffle=True, random_state=37)
@@ -117,18 +102,26 @@ for outer_train_idx, outer_test_idx in kf_outer.split(X):
             inner_ann_val_errors.append(mean_squared_error(y_val, y_ann))
 
         # Compute average validation error across inner folds for model M_s
-        avg_val_errors.append(np.mean(inner_ann_val_errors))
+        avg_val_ann_errors.append(np.mean(inner_ann_val_errors))
 
     # Select the best model M*
-    best_model_index = np.argmin(avg_val_errors)
-    best_h = hidden_units_range[best_model_index]
+    best_model_index_ann = np.argmin(avg_val_ann_errors)
+    best_h = hidden_units_range[best_model_index_ann]
     y_best_ann = fit_predict_ann(X_par,y_par, X_test,best_h)
-    test_mse = mean_squared_error(y_test, y_best_ann)
-    outer_test_errors.append(test_mse)
+    test_mse_ann = mean_squared_error(y_test, y_best_ann)
+    outer_ann_test_errors.append(test_mse_ann)
 
-    print(f"Outer fold: Best h = {best_h}, Test MSE = {test_mse:.2f}")
+    outer_baseline_test_errors.append(
+        mean_squared_error(
+            y_test,
+            fit_predict_baseline(X_par,y_par, X_test)
+        )
+    )
+    print(f"Outer fold: Best h = {best_h}, ANN Test MSE = {test_mse_ann:.2f}")
+    print(f"Outer fold:                  , baseline Test MSE = {outer_baseline_test_errors[-1]:.2f}")
 
 # Compute the estimate of the generalisation error, Ê_gen
-E_gen = np.mean(outer_test_errors)
+E_gen = np.mean(outer_ann_test_errors)
 print(f"Estimated generalisation error (ANN): {E_gen:.2f}")
+print(f"Estimated generalisation error (baseline): {(np.mean(outer_baseline_test_errors)):.2f}")
 
