@@ -1,12 +1,7 @@
-# =============================================================================
-# All purpose testing tool
-# =============================================================================
 import tkinter
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-
-# Machine learning specific
 from sklearn import model_selection
 import importlib_resources
 import sklearn.linear_model as lm
@@ -15,17 +10,15 @@ from dtuimldmtools import bmplot, feature_selector_lr
 # Homemade
 from generalTools import reorder_dataframe, set_0_column, standardize
 
-def main():
+if True:
     # Load in all data
     file = "Data5_constant_columns_removed.csv"
     Data = set_0_column(pd.read_csv(file), "byg026Opførelsesår")
     Data = standardize(Data)
     attributeNames = list(pd.read_csv(file).columns)
     attributeNames[0], attributeNames[attributeNames.index("byg026Opførelsesår")] = attributeNames[attributeNames.index("byg026Opførelsesår")], attributeNames[0]
-    
-    kFold(Data[:200], attributeNames)
-    
-def kFold(Data,attributeNames):
+
+if True:
     # Set up data
     X = Data[:, 1:]
     y = Data[:, 0]
@@ -113,7 +106,5 @@ def kFold(Data,attributeNames):
     plt.clim(-1.5,0)
     plt.xlabel('Crossvalidation fold')
     plt.ylabel('Attribute')
-    
 
-if __name__ == "__main__":
-    main()
+
