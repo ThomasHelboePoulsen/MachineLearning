@@ -143,7 +143,7 @@ for outer_train_idx, outer_test_idx in kf_outer.split(X):
     # Select the best model linreg M*
     avg_val_linreg_errors = np.mean(np.array(avg_val_linreg_errors), axis=0)
     best_model_index_linreeg = np.argmin(avg_val_linreg_errors)
-    best_l = lamdas[best_model_index_ann]
+    best_l = lamdas[best_model_index_linreeg]
     y_best_linreg = fit_predict_linreg(X_par,y_par, X_test,best_l)
     linreg_all_errors.extend((y_best_linreg-y_test)**2)
     test_mse_linreg = mean_squared_error(y_test, y_best_linreg)
