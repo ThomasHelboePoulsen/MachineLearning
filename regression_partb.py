@@ -9,8 +9,8 @@ warnings.filterwarnings("ignore", category=ConvergenceWarning)
 
 
 # Load excel file
-file_path = '/Users/cronebanan/Documents/DTU/S25/02450 Introduction to Machine Learning and Data Mining/Projects/Project 1/Data4_final.xlsx'
-df = pd.read_excel(file_path)
+file_path = 'Data5_constant_columns_removed.vsc'
+df = pd.read_csv(file_path)
 
 # Column names
 # print(df.columns)
@@ -37,7 +37,7 @@ y = np.array(y)
 
 # Outer CV loop
 K1 = 10
-kf_outer = KFold(n_splits=K1, shuffle=True, random_state=37)
+kf_outer = KFold(n_splits=K1, shuffle=True, random_state=8)
 
 test_errors = []
 
@@ -71,7 +71,7 @@ K2 = 10 # Inner CV
 hidden_units_range = [1, 2, 4, 8, 16]
 
 # Outer loop: to estimate generalisation error
-kf_outer = KFold(n_splits=K1, shuffle=True, random_state=37)
+kf_outer = KFold(n_splits=K1, shuffle=True, random_state=24)
 outer_test_errors = []
 
 # Loop over outer folds
@@ -84,7 +84,7 @@ for outer_train_idx, outer_test_idx in kf_outer.split(X):
     avg_val_errors = []
 
     # Inner loop: to select the best model/hyperparameter
-    kf_inner = KFold(n_splits=K2, shuffle=True, random_state=42)
+    kf_inner = KFold(n_splits=K2, shuffle=True, random_state=37)
 
     # Loop over each model M_s (each h in hidden_units_range)
     for h in hidden_units_range:
@@ -100,9 +100,8 @@ for outer_train_idx, outer_test_idx in kf_outer.split(X):
             model = MLPRegressor(
                 hidden_layer_sizes=(h,), 
                 activation='identity',
-                solver='adam',
                 max_iter=1000,
-                random_state=37
+                random_state=49
                 )
             
             model.fit(X_train, y_train)
@@ -123,9 +122,8 @@ for outer_train_idx, outer_test_idx in kf_outer.split(X):
     best_model = MLPRegressor(
         hidden_layer_sizes=(best_h,), 
         activation='identity',
-        solver='adam',
         max_iter=1000, 
-        random_state=42
+        random_state=81
         )
     best_model.fit(X_par, y_par)
 
