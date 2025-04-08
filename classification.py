@@ -21,13 +21,18 @@ target = 'kommunekode_101'
 X = df.drop(columns=[target, 'kommunekode_173', 'byg404Koordinat_easting', 'byg404Koordinat_northing'])
 y = df[target]
 
+#DISABLED: remove high correlation columns, to actually get a challenge?
+#corrs = df.corr(numeric_only=True)[target].abs()
+#X = df.drop(columns=corrs[corrs > 0.8].index.tolist())
+#print(corrs.sort_values(ascending=False))
+
 # Convert to numpy for sklearn compatibility
 X = np.array(X)
 y = np.array(y)
 
 # Set number of folds
-K1 = 10 # Outer CV
-K2 = 10 # Inner CV
+K1 = 2 # Outer CV
+K2 = 2 # Inner CV
 
 # k-neighbor values
 k_values = [1, 2, 4, 8, 16,32,64,128]
@@ -120,7 +125,7 @@ for outer_train_idx, outer_test_idx in kf_outer.split(X):
     best_model_index_knn = np.argmin(avg_val_knn_errors)
     best_k = k_values[best_model_index_knn]
     y_best_knn = fit_predict_knn(X_par,y_par, X_test,best_k)
-    knn_all_errors.extend((y_best_knn-y_test)**2)
+    knn_all_errors.extend((y_best_knn != y_test).astype(int))
     test_mse_knn = classification_error(y_test, y_best_knn)
     outer_knn_test_errors.append(test_mse_knn)
     ks.append(best_k)
@@ -130,23 +135,23 @@ for outer_train_idx, outer_test_idx in kf_outer.split(X):
     best_model_index_logreeg = np.argmin(avg_val_logreg_errors)
     best_l = lamdas[best_model_index_logreeg]
     y_best_logreg = fit_predict_logreg(X_par,y_par, X_test,best_l)
-    logreg_all_errors.extend((y_best_logreg-y_test)**2)
+    logreg_all_errors.extend((y_best_logreg != y_test).astype(int))
     test_mse_logreg = classification_error(y_test, y_best_logreg)
     outer_logreg_test_errors.append(test_mse_logreg)
-    ls.append(l)
+    ls.append(best_l)
 
     #baseline
     y_baseline = fit_predict_baseline(X_par,y_par, X_test)
-    baseline_all_errors.extend((y_baseline-y_test)**2)
+    baseline_all_errors.extend((y_baseline != y_test).astype(int))
     outer_baseline_test_errors.append(
         classification_error(
             y_test,
             y_baseline
         )
     )
-    print(f"Outer fold: Best k = {best_k}, KNN Test MSE = {test_mse_knn:.2f}")
-    print(f"Outer fold: baseline Test MSE = {outer_baseline_test_errors[-1]:.2f}")
-    print(f"Outer fold: logreg Test MSE = {test_mse_logreg:.2f}")
+    print(f"Outer fold: Best k = {best_k}, KNN Test classification error = {test_mse_knn:.2f}")
+    print(f"Outer fold: baseline Test classification error = {outer_baseline_test_errors[-1]:.2f}")
+    print(f"Outer fold: logreg Test classification error = {test_mse_logreg:.2f}")
 
 # Compute the estimate of the generalisation error, Ê_gen
 E_gen = np.mean(outer_knn_test_errors)
@@ -163,7 +168,7 @@ dict_ = {
     "E_baseline": outer_baseline_test_errors
 }
 results = pd.DataFrame(dict_)
-results.to_excel("project2Table1.xlsx")
+results.to_excel("project2Table1Classification.xlsx")
 
 tTestResults = {
     "knn": knn_all_errors,
@@ -174,4 +179,4 @@ tTestResults = {
 for key,val in tTestResults.items():
     print(f"size of {key}: {len(val)}")
 
-pd.DataFrame(tTestResults).to_excel("tTestResults.xlsx")
+pd.DataFrame(tTestResults).to_excel("tTestResultsClassification.xlsx")
