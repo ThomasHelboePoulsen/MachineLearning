@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from sklearn.linear_model import Ridge
 from sklearn.model_selection import KFold
 from sklearn.dummy import DummyRegressor
 from sklearn.metrics import mean_squared_error
@@ -10,7 +11,7 @@ warnings.filterwarnings("ignore", category=ConvergenceWarning)
 
 def fit_predict_ann(X_train,y_train, X_test,h):
     model = make_pipeline(
-                StandardScaler(),  # Scaled using only X_train in each fold
+                StandardScaler(),
                 MLPRegressor(
                     hidden_layer_sizes=(h,),
                     #activation='identity',
@@ -26,8 +27,17 @@ def fit_predict_ann(X_train,y_train, X_test,h):
 
 def fit_predict_baseline(X_train,y_train, X_test):
     model = make_pipeline(
-                StandardScaler(),  # Scaled using only X_train in each fold
+                StandardScaler(),
                 DummyRegressor(strategy='mean')
+            )
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
+    return y_pred
+
+def fit_predict_linreg(X_train,y_train, X_test,lamda):
+    model = make_pipeline(
+                StandardScaler(),
+                Ridge(alpha=lamda, max_iter=10000)
             )
     model.fit(X_train, y_train)
     y_pred = model.predict(X_test)
@@ -36,7 +46,7 @@ def fit_predict_baseline(X_train,y_train, X_test):
 # Load excel file
 file_path = 'Data5_constant_columns_removed.csv'
 df = pd.read_csv(file_path)
-df = df.head(50)
+df = df.head(500)
 
 # Column names
 # print(df.columns)
@@ -73,6 +83,7 @@ hidden_units_range = [1, 2, 4, 8, 16]
 kf_outer = KFold(n_splits=K1, shuffle=True, random_state=24)
 outer_ann_test_errors = []
 outer_baseline_test_errors = []
+outer_linreg_test_errors = []
 
 # Loop over outer folds
 for outer_train_idx, outer_test_idx in kf_outer.split(X):
@@ -83,34 +94,47 @@ for outer_train_idx, outer_test_idx in kf_outer.split(X):
     # Initialise list to hold validation errors for each model (hidden unit count)
     avg_val_ann_errors = []
     avg_val_baseline_errors = []
+    avg_val_linreg_errors = []
 
     # Inner loop: to select the best model/hyperparameter
     kf_inner = KFold(n_splits=K2, shuffle=True, random_state=37)
 
-    # Loop over each model M_s (each h in hidden_units_range)
-    for h in hidden_units_range:
-        inner_ann_val_errors = []
+    for inner_train_idx, val_idx in kf_inner.split(X_par):
+        # Split D^par into D^train and D^val
+        X_train, X_val = X_par[inner_train_idx], X_par[val_idx]
+        y_train, y_val = y_par[inner_train_idx], y_par[val_idx]
 
-        # Loop over inner folds
-        for inner_train_idx, val_idx in kf_inner.split(X_par):
-            # Split D^par into D^train and D^val
-            X_train, X_val = X_par[inner_train_idx], X_par[val_idx]
-            y_train, y_val = y_par[inner_train_idx], y_par[val_idx]
+        #ANN
+        for h in hidden_units_range:
+            inner_ann_val_errors = []
 
             # Train model M_s (ANN with h hidden units) on D^train
             y_ann = fit_predict_ann(X_train,y_train, X_val,h)
             inner_ann_val_errors.append(mean_squared_error(y_val, y_ann))
-
         # Compute average validation error across inner folds for model M_s
         avg_val_ann_errors.append(np.mean(inner_ann_val_errors))
 
-    # Select the best model M*
+        #LINREG
+        for l in [100,500,1000,1500]:
+            inner_linreg_val_errors = []
+            y_linreg = fit_predict_linreg(X_train,y_train, X_val,l)
+            inner_ann_val_errors.append(mean_squared_error(y_val, y_ann))
+        avg_val_linreg_errors.append(np.mean(inner_ann_val_errors))
+
+    # Select the best model ANN M*
     best_model_index_ann = np.argmin(avg_val_ann_errors)
     best_h = hidden_units_range[best_model_index_ann]
     y_best_ann = fit_predict_ann(X_par,y_par, X_test,best_h)
     test_mse_ann = mean_squared_error(y_test, y_best_ann)
     outer_ann_test_errors.append(test_mse_ann)
 
+    # Select the best model ANN M*
+    best_model_index_linreeg = np.argmin(avg_val_linreg_errors)
+    best_l = hidden_units_range[best_model_index_ann]
+    y_best_linreg = fit_predict_linreg(X_par,y_par, X_test,best_l)
+    test_mse_linreg = mean_squared_error(y_test, y_best_linreg)
+    outer_linreg_test_errors.append(test_mse_linreg)
+    #baseline
     outer_baseline_test_errors.append(
         mean_squared_error(
             y_test,
@@ -119,9 +143,11 @@ for outer_train_idx, outer_test_idx in kf_outer.split(X):
     )
     print(f"Outer fold: Best h = {best_h}, ANN Test MSE = {test_mse_ann:.2f}")
     print(f"Outer fold:                  , baseline Test MSE = {outer_baseline_test_errors[-1]:.2f}")
+    print(f"Outer fold:                  , baseline Test MSE = {test_mse_linreg:.2f}")
 
 # Compute the estimate of the generalisation error, Ê_gen
 E_gen = np.mean(outer_ann_test_errors)
 print(f"Estimated generalisation error (ANN): {E_gen:.2f}")
 print(f"Estimated generalisation error (baseline): {(np.mean(outer_baseline_test_errors)):.2f}")
+print(f"Estimated generalisation error (baseline): {(np.mean(outer_linreg_test_errors)):.2f}")
 
