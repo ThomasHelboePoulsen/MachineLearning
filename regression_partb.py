@@ -46,6 +46,7 @@ def fit_predict_linreg(X_train,y_train, X_test,lamda):
 # Load excel file
 file_path = 'Data5_constant_columns_removed.csv'
 df = pd.read_csv(file_path)
+df = df.head(50)
 
 
 # Column names
@@ -111,24 +112,25 @@ for outer_train_idx, outer_test_idx in kf_outer.split(X):
         y_train, y_val = y_par[inner_train_idx], y_par[val_idx]
 
         #ANN
+        inner_ann_val_errors = []
         for h in hidden_units_range:
-            inner_ann_val_errors = []
-
             # Train model M_s (ANN with h hidden units) on D^train
             y_ann = fit_predict_ann(X_train,y_train, X_val,h)
             inner_ann_val_errors.append(mean_squared_error(y_val, y_ann))
         # Compute average validation error across inner folds for model M_s
-        avg_val_ann_errors.append(np.mean(inner_ann_val_errors))
+        avg_val_ann_errors.append(inner_ann_val_errors)
 
 
         #LINREG
+        inner_linreg_val_errors = []
         for l in [100,500,1000,1500]:
-            inner_linreg_val_errors = []
             y_linreg = fit_predict_linreg(X_train,y_train, X_val,l)
             inner_ann_val_errors.append(mean_squared_error(y_val, y_ann))
-        avg_val_linreg_errors.append(np.mean(inner_ann_val_errors))
+        avg_val_linreg_errors.append(inner_ann_val_errors)
+
 
     # Select the best model ANN M*
+    avg_val_ann_errors = np.mean(np.array(avg_val_ann_errors), axis=0)
     best_model_index_ann = np.argmin(avg_val_ann_errors)
     best_h = hidden_units_range[best_model_index_ann]
     y_best_ann = fit_predict_ann(X_par,y_par, X_test,best_h)
@@ -138,6 +140,7 @@ for outer_train_idx, outer_test_idx in kf_outer.split(X):
     hs.append(best_h)
 
     # Select the best model linreg M*
+    avg_val_linreg_errors = np.mean(np.array(avg_val_linreg_errors), axis=0)
     best_model_index_linreeg = np.argmin(avg_val_linreg_errors)
     best_l = hidden_units_range[best_model_index_ann]
     y_best_linreg = fit_predict_linreg(X_par,y_par, X_test,best_l)
