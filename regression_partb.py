@@ -8,9 +8,26 @@ from sklearn.exceptions import ConvergenceWarning
 warnings.filterwarnings("ignore", category=ConvergenceWarning)
 
 
+def fit_predict_ann(X_train,y_train, X_test,h):
+    model = make_pipeline(
+                StandardScaler(),  # Scaled using only X_train in each fold
+                MLPRegressor(
+                    hidden_layer_sizes=(h,),
+                    #activation='identity',
+                    solver='adam',
+                    max_iter=10000,
+                    early_stopping=True,
+                    random_state=49
+                )
+            )
+    model.fit(X_train, y_train)
+    # Evaluate on D^val to get E^val_(M_s,j)
+    return model.predict(X_test)
+
 # Load excel file
 file_path = 'Data5_constant_columns_removed.csv'
 df = pd.read_csv(file_path)
+#df = df.head(50)
 
 # Column names
 # print(df.columns)
@@ -63,8 +80,8 @@ print(f'Estimated generalisation error (baseline): {E_gen:.2f}')
 from sklearn.neural_network import MLPRegressor
 
 # Set number of folds
-K1 = 10 # Outer CV
-K2 = 10 # Inner CV
+K1 = 2 # Outer CV
+K2 = 2 # Inner CV
 
 # Hyperparameter values (hidden units)
 hidden_units_range = [1, 2, 4, 8, 16]
@@ -87,7 +104,7 @@ for outer_train_idx, outer_test_idx in kf_outer.split(X):
 
     # Loop over each model M_s (each h in hidden_units_range)
     for h in hidden_units_range:
-        inner_val_errors = []
+        inner_ann_val_errors = []
 
         # Loop over inner folds
         for inner_train_idx, val_idx in kf_inner.split(X_par):
@@ -96,47 +113,17 @@ for outer_train_idx, outer_test_idx in kf_outer.split(X):
             y_train, y_val = y_par[inner_train_idx], y_par[val_idx]
 
             # Train model M_s (ANN with h hidden units) on D^train
-            model = make_pipeline(
-                StandardScaler(),  # Scaled using only X_train in each fold
-                MLPRegressor(
-                    hidden_layer_sizes=(h,),
-                    activation='identity',
-                    solver='adam',
-                    max_iter=1000,
-                    random_state=49
-                )
-            )
-
-            model.fit(X_train, y_train)
-
-            # Evaluate on D^val to get E^val_(M_s,j)
-            y_val_pred = model.predict(X_val)
-            val_mse = mean_squared_error(y_val, y_val_pred)
-            inner_val_errors.append(val_mse)
+            y_ann = fit_predict_ann(X_train,y_train, X_val,h)
+            inner_ann_val_errors.append(mean_squared_error(y_val, y_ann))
 
         # Compute average validation error across inner folds for model M_s
-        avg_val_errors.append(np.mean(inner_val_errors))
+        avg_val_errors.append(np.mean(inner_ann_val_errors))
 
     # Select the best model M*
     best_model_index = np.argmin(avg_val_errors)
     best_h = hidden_units_range[best_model_index]
-
-    # Retrain best model M* on all of D^par
-    best_model = make_pipeline(
-        StandardScaler(),
-        MLPRegressor(
-            hidden_layer_sizes=(best_h,),
-            activation='identity',
-            solver='adam',
-            max_iter=1000,
-            random_state=81
-        )
-    )
-    best_model.fit(X_par, y_par)
-
-    # Evaluate E^test_i on D^test
-    y_test_pred = best_model.predict(X_test)
-    test_mse = mean_squared_error(y_test, y_test_pred)
+    y_best_ann = fit_predict_ann(X_par,y_par, X_test,best_h)
+    test_mse = mean_squared_error(y_test, y_best_ann)
     outer_test_errors.append(test_mse)
 
     print(f"Outer fold: Best h = {best_h}, Test MSE = {test_mse:.2f}")
