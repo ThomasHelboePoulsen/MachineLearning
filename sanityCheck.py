@@ -13,17 +13,17 @@ def fit_predict_ann(X_train,y_train, X_test,h):
     model = make_pipeline(
                 StandardScaler(),
                 MLPRegressor(
-                    hidden_layer_sizes=(1000,1000,1000,1000),
+                    hidden_layer_sizes=(100,),
                     #activation='identity',
                     solver='adam',
                     max_iter=10000,
-                    early_stopping=True,
-                    random_state=49
+                    early_stopping=False,
+                    learning_rate_init=0.01,
+                    random_state=49,
+                    verbose=True
                 )
             )
-    model.fit(X_train, y_train)
-    # Evaluate on D^val to get E^val_(M_s,j)
-    return model.predict(X_test)
+    return model.fit(X_train, y_train)
 
 
 # Load excel file
@@ -58,6 +58,7 @@ kf_outer = KFold(n_splits=2, shuffle=True, random_state=24)
 for outer_train_idx, outer_test_idx in kf_outer.split(X):
     X_par, X_test = X[outer_train_idx], X[outer_test_idx]
     y_par, y_test = y[outer_train_idx], y[outer_test_idx]
-    y_pred = fit_predict_ann(X_par,y_par,X_test,0)
-    print(mean_squared_error(y,y_pred))
+    model =  fit_predict_ann(X_par,y_par,0,0)
+    print(mean_squared_error(y_test,model.predict(X_test)))
+    print("Error on training set: " + str(mean_squared_error(y_par,model.predict(X_par))))
 

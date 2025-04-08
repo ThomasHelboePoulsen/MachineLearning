@@ -21,7 +21,13 @@ def main():
     X = scaler.fit_transform(X)
     y = np.array(y)
     
-    lambdas = np.logspace(-5,5,10)
+    lambdas = np.logspace(-3,4,10)
+    
+    extra_points = []
+    for element in lambdas:
+        for x in range(1,10):
+            extra_points.append(x * element)
+    lambdas = extra_points
     
     ridgeResults = []
     
