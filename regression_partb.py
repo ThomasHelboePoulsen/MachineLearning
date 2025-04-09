@@ -46,7 +46,7 @@ def fit_predict_linreg(X_train,y_train, X_test,lamda):
 # Load excel file
 file_path = 'Data5_constant_columns_removed.csv'
 df = pd.read_csv(file_path)
-df = df.head(50)
+
 
 
 # Column names
@@ -74,8 +74,8 @@ y = np.array(y)
 from sklearn.neural_network import MLPRegressor
 
 # Set number of folds
-K1 = 5 # Outer CV
-K2 = 5 # Inner CV
+K1 = 10 # Outer CV
+K2 = 10 # Inner CV
 
 # Hyperparameter values (hidden units)
 hidden_units_range = [1, 2, 4, 8, 16,32,64,128]
