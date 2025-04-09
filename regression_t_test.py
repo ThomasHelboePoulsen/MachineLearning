@@ -1,35 +1,31 @@
 import pandas as pd
 from scipy.stats import ttest_rel
 import numpy as np
+from scipy import stats
 
 def main():
     df = pd.read_excel("tTestResults.xlsx")
+    #df = df.head(5000)
     comparisons = [["ann","linreg"],["ann","baseline"],["baseline","linreg"]]
-    data = [differenceTest(c1,c2), c1 +c2 ]
-    t_stat,p_value,lower_bound,upper_bound = differenceTest(df["ann"],df["linreg"])
-    print("buuber")
+    data = [(f"{c1} - {c2}", *differenceTest(df[c1],df[c2]) ) for c1,c2 in comparisons]
+    df = pd.DataFrame(data,columns=["test","t_stat","p_value","difference 95% confidence interval"])
+    print(df)
+    df.to_excel("regression_t_test.xlsx")
 
-# bootstrap assuming no distribution
-def bootstrap10(data):
-        n_bootstrap = 10 * len(data)
-        bootstrap_samples = np.random.choice(data, (n_bootstrap, len(data)), replace=True)
-        return bootstrap_samples
+
 
 def differenceTest(vector1,vector2):
-    """get difference measures. Must be dependent"""
+    """get difference measures using paired t test. Must be dependent ie. v1_i and v2_i must be errors when predicting on the same input"""
     t_stat, p_value = ttest_rel(vector1, vector2)
     z = vector1 -  vector2
-    t_stat = np.mean(z) / (np.std(z) / (len(z)**(1/2)))
-    newZ = bootstrap10(z)
-    lower_bound = np.percentile(newZ, 2.5)
-    upper_bound = np.percentile(newZ, 97.5)
-    print(lower_bound,upper_bound)
-    print(f"t = {t_stat:.3f}, p = {p_value}")
-
-    # Set a random seed for reproducibility
-    np.random.seed(42)
-
-    return t_stat,p_value,lower_bound,upper_bound
+    #t_stat = np.mean(z) / (np.std(z) / (len(z)**(1/2))) -- also works.
+    mean_z = np.mean(z)
+    sem_z = stats.sem(z)
+    confidence = 0.95
+    frihedsGrader = len(z) - 1
+    critical_values_of_the_t_distribution = stats.t.ppf(1 - (1 - confidence)/2, frihedsGrader)
+    margin_of_error = critical_values_of_the_t_distribution * sem_z
+    return t_stat,p_value,[mean_z + margin_of_error,mean_z - margin_of_error]
 
 
 if __name__=="__main__":
