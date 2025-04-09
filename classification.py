@@ -18,7 +18,7 @@ df = pd.read_csv(file_path)
 target = 'kommunekode_101'
 
 # Splitting the data into X and y
-X = df.drop(columns=[target, 'kommunekode_173', 'byg404Koordinat_easting', 'byg404Koordinat_northing'])
+X = df.drop(columns=[target, 'kommunekode_173'])
 y = df[target]
 
 #DISABLED: remove high correlation columns, to actually get a challenge?
@@ -31,8 +31,8 @@ X = np.array(X)
 y = np.array(y)
 
 # Set number of folds
-K1 = 2 # Outer CV
-K2 = 2 # Inner CV
+K1 = 10 # Outer CV
+K2 = 10 # Inner CV
 
 # k-neighbor values
 k_values = [1, 2, 4, 8, 16,32,64,128]
