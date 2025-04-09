@@ -4,14 +4,13 @@ import numpy as np
 from scipy import stats
 
 def main():
-    df = pd.read_excel("tTestResults.xlsx")
+    df = pd.read_excel("tTestResultsClassification.xlsx")
     #df = df.head(5000)
-    comparisons = [["ann","linreg"],["ann","baseline"],["baseline","linreg"]]
+    comparisons = [["knn","logreg"],["knn","baseline"],["baseline","logreg"]]
     data = [(f"{c1} - {c2}", *differenceTest(df[c1],df[c2]) ) for c1,c2 in comparisons]
     df = pd.DataFrame(data,columns=["test","t_stat","p_value","difference 95% confidence interval"])
     print(df)
-    df.to_excel("regression_t_test.xlsx")
-
+    df.to_excel("classifiaction_t_test.xlsx")
 
 
 
@@ -26,6 +25,7 @@ def differenceTest(vector1,vector2):
     critical_values_of_the_t_distribution = stats.t.ppf(0.975, frihedsGrader)
     margin_of_error = critical_values_of_the_t_distribution * sem_z
     return t_stat,p_value,[mean_z - margin_of_error,mean_z + margin_of_error]
+
 
 if __name__=="__main__":
     main()
